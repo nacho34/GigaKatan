@@ -13,10 +13,9 @@ public class God {
     public int total;
     private Map map;
 
-    public God(int squareDim, Map map) {
+    public God(Map map) {
         this.map = map;
-        this.squareDim = squareDim;
-        this.map.get(squareDim/2,squareDim/2).domain = 0;
+        this.squareDim = Constants.squareDim;
         this.max = 25000;
         this.total = 1;
     }
@@ -25,32 +24,30 @@ public class God {
         bool finished = false;
         Map updated = map.getCopy();
 
+        // Debug.Log("total: " + total);
         //change tiles by randomadjacent
         for(int i = 0; i < squareDim+2; i++){
             // Debug.Log("outer loop");
             for(int j = 0; j < squareDim+2; j++){
                 if(total == max) {
-                    Debug.Log("finished");
+                    // Debug.Log("finished");
                     finished = true;
-                    break;
+                    map = updated;
+                    return finished;
                 }
                 DomainTile current = map.get(i,j);
-                if(current.domain == domainToExpand) {
+                if(current.getDomain() == domainToExpand) {
                     DomainTile place = current.randomDifferent();
                     if(place != null) {
                         // Debug.Log(place.x);
-                        updated.get(place.x,place.y).domain = domainToExpand;
+                        updated.get(place.x,place.y).setDomain(domainToExpand);
                         total++;
                     }
                 }
             }
-            if(total == max) {
-                break;
-            }
         }
 
         map = updated;
-        map.display();
 
         return finished;
     }

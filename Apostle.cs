@@ -9,11 +9,18 @@ public class Apostle
     public DomainTile pos;
     public List<DomainTile> tiles = new List<DomainTile>();
 
+    public Apostle (int domain, DomainTile pos){
+        this.domain = domain;
+        this.pos = pos;
+        this.pos.setDomain(domain);
+        tiles.Add(pos);
+    }
+
     public Apostle (int domain, ApostleSettings tileCap, DomainTile pos){
         this.domain = domain;
         this.tileCap = tileCap;
         this.pos = pos;
-        this.pos.domain = domain;
+        this.pos.setDomain(domain);
         tiles.Add(pos);
     }
 
@@ -28,7 +35,7 @@ public class Apostle
             DomainTile nextTile = pos.randomAdjacent(expansionDomain);
             if(nextTile != null) {
                 // Debug.Log("found tile next to " + pos.x + ", " + pos.y + " at: " + nextTile.x + ", " + nextTile.y);
-                nextTile.domain = this.domain;
+                nextTile.setDomain(this.domain);
                 pos = nextTile;
                 tiles.Add(pos);
                 return false;

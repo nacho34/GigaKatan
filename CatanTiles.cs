@@ -8,8 +8,11 @@ using System;
 
 public class CatanTiles : MonoBehaviour {
 
+    public List<Tile> ntiles = new List<Tile>();
     public Tile domainminus2;
     public Tile domainminus1;
+
+    public List<Tile> tiles = new List<Tile>();
     public Tile domain0;
     public Tile domain1;
     public Tile domain2;
@@ -19,28 +22,34 @@ public class CatanTiles : MonoBehaviour {
     public Tile domain6;
     public Tile domain7;
     public Tile domain8;
-
-    public List<Tile> tiles = new List<Tile>();
-    public List<Tile> ntiles = new List<Tile>();
-
+    public Tile domain9;
+    public Tile domain10;
+    public Tile domain11;
+    public Tile domain12;
+    public Tile domain13;
+    public Tile domain14;
+    public Tile domain15;
+    public Tile domain16;
 
     public Tile get(int domain) {
         if(domain < 0){
             return ntiles[-1*domain-1];
-        } else if(domain > 8) {
+        } 
+        else if(domain > 8) {
             return tiles[domain % 7 + 2];
         }
         return tiles[domain];
-        // return domain0;
     }
 
     void Start() {
+
         foreach (var tile in tiles) {
             Debug.Log(tile);
         }
 
-        ntiles.Add(domainminus2);
         ntiles.Add(domainminus1);
+        ntiles.Add(domainminus2);
+
         tiles.Add(domain0);
         tiles.Add(domain1);
         tiles.Add(domain2);

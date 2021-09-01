@@ -5,36 +5,60 @@ using UnityEngine.Tilemaps;
 using UnityEditor;
 using System;
 
-public class GenTiles : MonoBehaviour
+public class GenTiles
 {
-    public System.Random rand = new System.Random();
-     
-    public Tilemap cancer;
 
-    private static int squareDim = 250;
+    public int godsDomain = -2;
+    public int mainDomain = 0;
+    public System.Random rand;
+
     private static int apostleDim = 150;
     private static int finalMapSize = 4000;
     private static int numApostles = 16;
+    private static int numApostles2 = 8;
 
     public God god;
     public Map map;
 
     public List<Apostle> apostles;
+    public List<Apostle> apostles2;
 
-    public void init() {
-        CatanTiles tiles = GetComponent<CatanTiles>();
-
-        // Debug.Log(tiles.get(3));
-        map = new Map(squareDim,rand,cancer,tiles);
-        god = new God(squareDim,map);
-
-        landCreated = false;
+    public GenTiles(Map map, System.Random rand) {
+        this.map = map;
+        this.rand = rand;
     }
 
     public void EightApostles(){
 
         apostles = new List<Apostle>();
-        ApostleSettings[] settings = new ApostleSettings[numApostles];
+        List<(int, int)> spawnedPositions = new List<(int,int)>();
+
+        mainMan = new Apostle(mainDomain,map.get(Constants.squareDim/2,Constants.squareDim/2));
+        apostles.Add(mainMan);
+        spawnedPositions.Add((Constants.squareDim/2,Constants.squareDim/2));
+
+        for(int i = 1; i < numApostles; i++) {
+            (int, int) pos = ((100-apostleDim/2) + rand.Next(1,apostleDim+1),(100-apostleDim/2) + rand.Next(1,apostleDim+1));
+            while (spawnedPositions.Contains(pos)) {
+                pos = (85 + rand.Next(1,apostleDim+1), 85 + rand.Next(1,apostleDim+1));
+            }
+            apostles.Add(new Apostle(i+9, map.get(pos.Item1, pos.Item2)));
+            spawnedPositions.Add(pos);
+        }
+    }
+
+    public void initGod() {
+        map.get(Constants.squareDim/2,Constants.squareDim/2).setDomain(godsDomain);
+        god = new God(map);
+    }
+
+    //apostles2 contains domains 1-8
+    public void EightApostles2(){
+
+        map.killAllOtherTiles(0);
+
+        apostles2 = new List<Apostle>();
+        ApostleSettings[] settings = new ApostleSettings[numApostles2];
 
         for (int i = 0; i<settings.Length; i++) {
             settings[i] = new ApostleSettings(400);
@@ -51,93 +75,84 @@ public class GenTiles : MonoBehaviour
 
         List<(int, int)> spawnedPositions = new List<(int,int)>();
 
-        mainMan = new Apostle(1,settings[0],map.get(squareDim/2,squareDim/2));
-        apostles.Add(mainMan);
-        spawnedPositions.Add((squareDim/2,squareDim/2));
-
-        for(int i = 1; i < numApostles; i++) {
-            (int, int) pos = ((100-apostleDim/2) + rand.Next(1,apostleDim+1),(100-apostleDim/2) + rand.Next(1,apostleDim+1));
+        for(int i = 1; i < numApostles2+1; i++) {
+            DomainTile currentTile = apostles[mainDomain].tiles[rand.Next(0, apostles[mainDomain].tiles.Count)];
+            (int, int) pos = (currentTile.x, currentTile.y);
             while (spawnedPositions.Contains(pos)) {
-                pos = (85 + rand.Next(1,apostleDim+1), 85 + rand.Next(1,apostleDim+1));
+                currentTile = apostles[mainDomain].tiles[rand.Next(0, apostles[mainDomain].tiles.Count)];
+                pos = (currentTile.x, currentTile.y);
             }
-            apostles.Add(new Apostle(i+1, settings[i], map.get(pos.Item1, pos.Item2)));
+            apostles2.Add(new Apostle(i, settings[i-1], map.get(pos.Item1, pos.Item2)));
             spawnedPositions.Add(pos);
         }
     }
 
-    // Start is called before the first frame update
-    void Start()
-    {
-        cancer.ClearAllTiles();
-        init();
-    }
-
-    private int ticksPassed = 0;
-
-    void Update() {
-        ticksPassed++;
-        if (ticksPassed == 1) {
-            UpdateGame();
-            ticksPassed = 0;
-        }
-    }
-
-    bool landCreated;
-    bool apostleUpdateFinished = true;
-    bool apostlePartOneFinished = false;
-    bool apostlePartTwoFinished = false;
-    bool godSmoothingFinished = false;
-    int currentFillDomain = 2;
+    
+    int currentFillDomain = 10;
     Apostle mainMan;
     int godTicks = 0;
     int maxGodTicks = 2;
 
-    // Update is called once per frame
-    void UpdateGame()
-    {   
-        // map.display();
-        if(!landCreated) {
-            if(god.CreateTheLand(0)) {
-                landCreated = true;
-                map = god.getMap();
-                map.updateAdjacents();
-                EightApostles();
+    public bool initialGod() {
+        // Debug.Log("god: " + god);
+        if(god.CreateTheLand(godsDomain)) {
+            map = god.getMap();
+            map.updateAdjacents();
+            EightApostles();
+            return true;
+        }
+        return false;
+    }
+
+    public bool summon(){
+        int doneCount = 0;
+        foreach(var cancerman in apostles){
+            if(cancerman.update(godsDomain)) {doneCount++;}
+        }
+        if(doneCount == apostles.Count) {return true;}
+        return false;
+    }
+
+    public bool consume() {
+        if(mainMan.tiles.Count < finalMapSize) {
+            for(int i = currentFillDomain; i<numApostles+9; i++) {
+                if(!mainMan.update(i)) {
+                    currentFillDomain = i;
+                    break;
+                }
+                if(currentFillDomain == numApostles + 9 - 1){
+                    currentFillDomain = 10;
+                }
             }
         } else {
-            if(apostleUpdateFinished && !apostlePartOneFinished) {
-                int doneCount = 0;
-                apostleUpdateFinished = false;
-                foreach(var cancerman in apostles){
-                    if(cancerman.update(0)){doneCount++;}
-                }
-                apostleUpdateFinished = true;
-                if(doneCount == apostles.Count) {apostlePartOneFinished = true;}
-            } else if(!apostlePartTwoFinished) {
-                if(mainMan.tiles.Count < finalMapSize) {
-                    for(int i = currentFillDomain; i<numApostles; i++) {
-                        if(!mainMan.update(i)) {
-                            currentFillDomain = i;
-                            break;
-                        }
-                    }
-                } else {
-                    apostlePartTwoFinished = true;
-                    Debug.Log("done");
-                    god.setMap(map);
-                    god.total = 0;
-                } 
-            } else if(!godSmoothingFinished) {
-                if(godTicks == maxGodTicks) {
-                    godSmoothingFinished = true;
-                    map = god.getMap();
-                } else {
-                    Debug.Log("god creating the land");
-                    god.CreateTheLand(1);
-                    godTicks++;
-                }
-            }
-            map.display();
+            Debug.Log("done");
+            god.setMap(map);
+            god.total = 0;
+            return true;
         }
+        return false;
+    }
+
+    public bool godSmoothing() {
+        if(godTicks == maxGodTicks) {
+            map = god.getMap();
+            map.updateAdjacents();
+            EightApostles2();
+            return true;
+        }
+        Debug.Log("god creating the land");
+        god.CreateTheLand(mainDomain);
+        godTicks++;
+        return false;
+    }
+
+    public bool dahdiowdjiqode(){
+        int doneCount = 0;
+        foreach(var cancerman in apostles2){
+            if(cancerman.update(mainDomain)) {doneCount++;}
+        }
+        if(doneCount == apostles2.Count) {return true;}
+        return false;
     }
 
 }
